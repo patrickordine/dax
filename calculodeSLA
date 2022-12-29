@@ -1,0 +1,26 @@
+#CalculoSLA = 
+/* Variáveis Iniciais*/
+VAR _criado = SUM(###COLUNA COM A DATA E HORA###)
+VAR _finalizado = SUM(###COLUNA COM A DATA E HORA###)
+VAR _inicio = TIMEVALUE("07:00:00") /*HORÁRIO DO INÍCIO DO EXPEDIENTE*/
+VAR _fim = TIMEVALUE("17:00:00") /*HORÁRIO DO FINAL DO EXPEDIENTE*/
+
+/* Contagem de dias Úteis e Folgas*/
+VAR _diasUteis = NETWORKDAYS(DATEVALUE(_criado),DATEVALUE(_finalizado))
+VAR _diasFolga = (DATEDIFF(_criado,_finalizado,DAY)+1)-_diasUteis
+/* Valor do SLA*/
+VAR _sla = SUM(###COLUNA COM O VALOR DO SLA EM NÚMERO DECIMAL###)
+
+/* Contagem de tempo entre a criação do Card até a finalização do mesmo*/
+VAR _tempo = 
+    if(
+        _diasUteis = 1, (TIMEVALUE(_finalizado)-TIMEVALUE(_criado))*24 , 
+        if ( _diasUteis = 2, ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60), ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60)+(((_diasUteis)-_diasFolga)*10)
+        )
+    )
+/*Comparação do SLA com o Tempo gasto da finalização - (1-Dentro da Meta / 0-Fora da meta)*/
+VAR _prazoSLA = 
+    IF( _sla>=_tempo,1,0)
+
+return
+_prazoSLA
