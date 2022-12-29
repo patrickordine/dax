@@ -22,5 +22,11 @@ VAR _tempo =
 VAR _prazoSLA = 
     IF( _sla>=_tempo,1,0)
 
+/*Calculo da % dentro da meta*/
+var _calculoSLA = 
+    (
+        COUNTROWS(FILTER(ALL(###TABELA###),_tempo<###COLUNA DE SLA NA TABELA ###)) / DISTINCTCOUNT(###COLUNA DE ID NA TABELA###)
+    )
+
 return
-_prazoSLA
+_calculoSLA
