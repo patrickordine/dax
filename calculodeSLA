@@ -15,18 +15,12 @@ VAR _sla = SUM(###COLUNA COM O VALOR DO SLA EM NÚMERO DECIMAL###)
 VAR _tempo = 
     if(
         _diasUteis = 1, (TIMEVALUE(_finalizado)-TIMEVALUE(_criado))*24 , 
-        if ( _diasUteis = 2, ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60), ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60)+(((_diasUteis)-_diasFolga)*10)
+        if ( _diasUteis = 2, ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60), 
+            ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60)+(((_diasUteis-2)-_diasFolga)*10)
         )
     )
 /*Comparação do SLA com o Tempo gasto da finalização - (1-Dentro da Meta / 0-Fora da meta)*/
 VAR _prazoSLA = 
     IF( _sla>=_tempo,1,0)
-
-/*Calculo da % dentro da meta*/
-var _calculoSLA = 
-    (
-        COUNTROWS(FILTER(ALL(###TABELA###),_tempo<###COLUNA DE SLA NA TABELA ###)) / DISTINCTCOUNT(###COLUNA DE ID NA TABELA###)
-    )
-
 return
-_calculoSLA
+_prazoSLA
