@@ -1,26 +1,56 @@
-#CalculoSLA = 
-/* Variáveis Iniciais*/
-VAR _criado = SUM(###COLUNA COM A DATA E HORA###)
-VAR _finalizado = SUM(###COLUNA COM A DATA E HORA###)
-VAR _inicio = TIMEVALUE("07:00:00") /*HORÁRIO DO INÍCIO DO EXPEDIENTE*/
-VAR _fim = TIMEVALUE("17:00:00") /*HORÁRIO DO FINAL DO EXPEDIENTE*/
+#TempoUtilDesligamento = 
 
-/* Contagem de dias Úteis e Folgas*/
-VAR _diasUteis = NETWORKDAYS(DATEVALUE(_criado),DATEVALUE(_finalizado))
-VAR _diasFolga = (DATEDIFF(_criado,_finalizado,DAY)+1)-_diasUteis
-/* Valor do SLA*/
-VAR _sla = SUM(###COLUNA COM O VALOR DO SLA EM NÚMERO DECIMAL###)
+// Variáveis Iniciais
+VAR _criado = 'Desligamento - RH Phase History'[firstTimeIn]
+VAR _finalizado = if('Desligamento - RH Phase History'[lastTimeOut]=BLANK(),now(),'Desligamento - RH Phase History'[lastTimeOut])
 
-/* Contagem de tempo entre a criação do Card até a finalização do mesmo*/
+//Variaveis de Horário de Expediente
+VAR _inicio = TIMEVALUE("07:00:00")
+VAR _fim = TIMEVALUE("17:00:00")
+
+// Contagem de dias Úteis e Folgas
+VAR _diasUteis = NETWORKDAYS(DATEVALUE(_criado), DATEVALUE(_finalizado))
+VAR _diasFolga = (DATEDIFF(_criado, _finalizado, DAY) + 1) - _diasUteis
+VAR _dias = DATEDIFF(DATEVALUE(_criado),DATEVALUE(_finalizado),DAY)+1
+VAR _mesmoDia = DATEVALUE(_criado)=DATEVALUE(_finalizado)
+
+// Verificações de Dias Uteis e Finais de Semana
+VAR _criadoUtil = (WEEKDAY(DATEVALUE(_criado),3)<5)
+VAR _criadoNoSabado = (WEEKDAY(DATEVALUE(_criado),3)=5)
+VAR _criadoNoDomingo =(WEEKDAY(DATEVALUE(_criado),3)=6)
+VAR _criadoNoFinalDeSemana = _criadoNoSabado || _criadoNoDomingo
+VAR _finalizadoUtil = (WEEKDAY(DATEVALUE(_finalizado),3)<5)
+VAR _finalizadoNoSabado = (WEEKDAY(DATEVALUE(_finalizado),3)=5)
+VAR _finalizadoNoDomingo = (WEEKDAY(DATEVALUE(_finalizado),3)=6)
+VAR _finalizadoNoFinalDeSemana = _finalizadoNoSabado || _finalizadoNoDomingo
+
+//Tempo entre datas
+VAR _tempoEntreCriacaoEFim = if(_diasUteis=1, 0, IF(_diasUteis=2 && _criadoNoSabado,10, IF(_diasUteis=2 && _finalizadoNoSabado,10,if(_diasUteis=3 && _criadoNoSabado,20,if(_criadoNoFinalDeSemana || _finalizadoNoFinalDeSemana,((_dias-1)-_diasFolga)*10,((_dias-2)-_diasFolga)*10)))))
+
+//Calculo de horas Uteis no primeiro dia
+VAR _primeiroDia =  if(_criadoNoFinalDeSemana,0, IF(TIMEVALUE(_criado)>Time(HOUR(_fim),0,0),0,DATEDIFF(TIMEVALUE(_criado),Time(hour(_fim),0,0),MINUTE)/60))
+
+//Calculo de horas uteis no último dia
+VAR _ultimoDia = IF(_finalizadoNoFinalDeSemana,0,if(TIMEVALUE(_finalizado)>Time(hour(_fim),0,0),10,DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE)/60))
+
+//Calculo do tempo útil da fase
 VAR _tempo = 
-    if(
-        _diasUteis = 1, (TIMEVALUE(_finalizado)-TIMEVALUE(_criado))*24 , 
-        if ( _diasUteis = 2, ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60), 
-            ((DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE))/60)+((DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE))/60)+(((_diasUteis-2)-_diasFolga)*10)
-        )
-    )
-/*Comparação do SLA com o Tempo gasto da finalização - (1-Dentro da Meta / 0-Fora da meta)*/
-VAR _prazoSLA = 
-    IF( _sla>=_tempo,1,0)
-return
-_prazoSLA
+    // Criado e Finalizado no mesmo dia E em dia Útil
+    IF(_mesmoDia && _criadoUtil, _primeiroDia,
+
+    // Criado no final de semana e finalizado em dia Útil
+    IF(_criadoNoFinalDeSemana && _finalizadoUtil, _tempoEntreCriacaoEFim +_ultimoDia + _primeiroDia,
+    
+    //Criado Fora do Expediente em dia Útil
+    IF(_mesmoDia, _primeiroDia,
+
+    //Restante
+        _tempoEntreCriacaoEFim
+        +
+        _primeiroDia
+        +
+        _ultimoDia 
+    )))
+    
+RETURN
+if(_finalizado=BLANK()||_criado=BLANK(),BLANK(),IF(_tempo<0,0,_tempo))
