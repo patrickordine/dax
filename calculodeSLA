@@ -28,7 +28,7 @@ VAR _finalizadoNoFinalDeSemana = _finalizadoNoSabado || _finalizadoNoDomingo
 VAR _tempoEntreCriacaoEFim = if(_diasUteis=1, 0, IF(_diasUteis=2 && _criadoNoSabado,10, IF(_diasUteis=2 && _finalizadoNoSabado,10,if(_diasUteis=3 && _criadoNoSabado,20,if(_criadoNoFinalDeSemana || _finalizadoNoFinalDeSemana,((_dias-1)-_diasFolga)*10,((_dias-2)-_diasFolga)*10)))))
 
 //Calculo de horas Uteis no primeiro dia
-VAR _primeiroDia =  if(_criadoNoFinalDeSemana,0, IF(TIMEVALUE(_criado)>Time(HOUR(_fim),0,0),0,DATEDIFF(TIMEVALUE(_criado),Time(hour(_fim),0,0),MINUTE)/60))
+VAR _primeiroDia =  if(_criadoNoFinalDeSemana,0, IF(TIMEVALUE(_criado)>Time(HOUR(_fim),0,0),0,if(TIMEVALUE(_finalizado)>TIME(HOUR(_fim),0,0)&&_mesmoDia,DATEDIFF(TIMEVALUE(_criado),TIME(HOUR(_fim),0,0),MINUTE)/60,DATEDIFF(TIMEVALUE(_criado),TIMEVALUE(_finalizado),MINUTE)/60)))
 
 //Calculo de horas uteis no último dia
 VAR _ultimoDia = IF(_finalizadoNoFinalDeSemana,0,if(TIMEVALUE(_finalizado)>Time(hour(_fim),0,0),10,DATEDIFF(TIME(HOUR(_inicio),0,0),TIMEVALUE(_finalizado),MINUTE)/60))
@@ -54,3 +54,4 @@ VAR _tempo =
     
 RETURN
 if(_finalizado=BLANK()||_criado=BLANK(),BLANK(),IF(_tempo<0,0,_tempo))
+
